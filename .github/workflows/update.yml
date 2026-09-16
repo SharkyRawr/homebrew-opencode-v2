@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
+    inputs:
+      allow_downgrade:
+        description: "Allow updating to a version older than the current formula"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -15,20 +20,28 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
       - name: Regenerate formula from latest release
+        env:
+          ALLOW_DOWNGRADE: ${{ inputs.allow_downgrade }}
         run: |
           set -euo pipefail
+          ALLOW_DOWNGRADE="${ALLOW_DOWNGRADE:-false}"
+          FORMULA="Formula/opencode@2.rb"
           API="https://update.opencode.ai/api/latest/cli"
-          JSON="$(curl -fsSL "$API")"
+          JSON="$(curl -fsSL --retry 5 --retry-delay 5 "$API")"
 
-          VERSION="$(jq -r '.artifacts[] | select(.distribution == "opencode") | .version' <<<"$JSON")"
-          [ -n "$VERSION" ] || { echo "no version in $API"; exit 1; }
+          # First opencode artifact only. Validate the version so a malformed
+          # or changed API response fails closed instead of injecting into
+          # the heredoc, commit message, or grep below.
+          VERSION="$(jq -r '[.artifacts[] | select(.distribution == "opencode")][0].version' <<<"$JSON")"
+          [[ "$VERSION" =~ ^[0-9][0-9A-Za-z._+-]*$ ]] || { echo "bad version: $VERSION"; exit 1; }
 
           sha() {
-            jq -r --arg f "$1" '.artifacts[] | select(.distribution == "opencode") | .metadata.files[$f].sha256' <<<"$JSON"
+            jq -r --arg f "$1" '[.artifacts[] | select(.distribution == "opencode")][0].metadata.files[$f].sha256' <<<"$JSON"
           }
 
           DARWIN_X64="$(sha opencode-darwin-x64.zip)"
@@ -39,12 +52,21 @@ jobs:
             [[ "$h" =~ ^[0-9a-f]{64}$ ]] || { echo "bad sha256: $h"; exit 1; }
           done
 
-          if grep -q "version \"$VERSION\"" "Formula/opencode@2.rb"; then
+          if grep -qF "version \"$VERSION\"" "$FORMULA"; then
             echo "already at $VERSION"
             exit 0
           fi
 
-          cat > "Formula/opencode@2.rb" <<EOF
+          # Never silently roll the formula back; re-run manually with the
+          # allow_downgrade input to force a downgrade.
+          CURRENT="$(sed -n 's/^[[:space:]]*version "\(.*\)"$/\1/p' "$FORMULA")"
+          if [ -n "$CURRENT" ] && [ "$ALLOW_DOWNGRADE" != "true" ] &&
+             [ "$(printf '%s\n' "$CURRENT" "$VERSION" | sort -V | tail -1)" = "$CURRENT" ]; then
+            echo "refusing downgrade $CURRENT -> $VERSION"
+            exit 1
+          fi
+
+          cat > "$FORMULA" <<EOF
           # typed: false
           # frozen_string_literal: true
 
@@ -67,11 +89,11 @@ jobs:
             end
 
             on_linux do
-              if Hardware::CPU.intel? and Hardware::CPU.is_64_bit?
+              if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
                 url "https://opencode.ai/files/bin/$VERSION/opencode-linux-x64.tar.gz"
                 sha256 "$LINUX_X64"
               end
-              if Hardware::CPU.arm? and Hardware::CPU.is_64_bit?
+              if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
                 url "https://opencode.ai/files/bin/$VERSION/opencode-linux-arm64.tar.gz"
                 sha256 "$LINUX_ARM64"
               end
@@ -87,8 +109,11 @@ jobs:
           end
           EOF
 
-          git add "Formula/opencode@2.rb"
+          ruby -c "$FORMULA"
+
+          git add "$FORMULA"
           git -c user.name="opencode-update-bot" \
               -c user.email="actions@github.com" \
               commit -m "opencode@2 $VERSION"
+          git pull --rebase origin "${GITHUB_REF_NAME:-main}"
           git push
