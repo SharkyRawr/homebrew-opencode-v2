@@ -1,0 +1,94 @@
+name: update formula
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-formula
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Regenerate formula from latest release
+        run: |
+          set -euo pipefail
+          API="https://update.opencode.ai/api/latest/cli"
+          JSON="$(curl -fsSL "$API")"
+
+          VERSION="$(jq -r '.artifacts[] | select(.distribution == "opencode") | .version' <<<"$JSON")"
+          [ -n "$VERSION" ] || { echo "no version in $API"; exit 1; }
+
+          sha() {
+            jq -r --arg f "$1" '.artifacts[] | select(.distribution == "opencode") | .metadata.files[$f].sha256' <<<"$JSON"
+          }
+
+          DARWIN_X64="$(sha opencode-darwin-x64.zip)"
+          DARWIN_ARM64="$(sha opencode-darwin-arm64.zip)"
+          LINUX_X64="$(sha opencode-linux-x64.tar.gz)"
+          LINUX_ARM64="$(sha opencode-linux-arm64.tar.gz)"
+          for h in "$DARWIN_X64" "$DARWIN_ARM64" "$LINUX_X64" "$LINUX_ARM64"; do
+            [[ "$h" =~ ^[0-9a-f]{64}$ ]] || { echo "bad sha256: $h"; exit 1; }
+          done
+
+          if grep -q "version \"$VERSION\"" "Formula/opencode@2.rb"; then
+            echo "already at $VERSION"
+            exit 0
+          fi
+
+          cat > "Formula/opencode@2.rb" <<EOF
+          # typed: false
+          # frozen_string_literal: true
+
+          class OpencodeAT2 < Formula
+            desc "The AI coding agent built for the terminal."
+            homepage "https://github.com/anomalyco/opencode"
+            version "$VERSION"
+
+            depends_on "ripgrep"
+
+            on_macos do
+              if Hardware::CPU.intel?
+                url "https://opencode.ai/files/bin/$VERSION/opencode-darwin-x64.zip"
+                sha256 "$DARWIN_X64"
+              end
+              if Hardware::CPU.arm?
+                url "https://opencode.ai/files/bin/$VERSION/opencode-darwin-arm64.zip"
+                sha256 "$DARWIN_ARM64"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.intel? and Hardware::CPU.is_64_bit?
+                url "https://opencode.ai/files/bin/$VERSION/opencode-linux-x64.tar.gz"
+                sha256 "$LINUX_X64"
+              end
+              if Hardware::CPU.arm? and Hardware::CPU.is_64_bit?
+                url "https://opencode.ai/files/bin/$VERSION/opencode-linux-arm64.tar.gz"
+                sha256 "$LINUX_ARM64"
+              end
+            end
+
+            def install
+              bin.install "opencode"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/opencode --version")
+            end
+          end
+          EOF
+
+          git add "Formula/opencode@2.rb"
+          git -c user.name="opencode-update-bot" \
+              -c user.email="actions@github.com" \
+              commit -m "opencode@2 $VERSION"
+          git push
