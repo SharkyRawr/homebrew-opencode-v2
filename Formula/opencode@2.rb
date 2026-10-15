@@ -4,29 +4,29 @@
 class OpencodeAT2 < Formula
   desc "The AI coding agent built for the terminal."
   homepage "https://github.com/anomalyco/opencode"
-  version "2.0.29"
+  version "2.0.30"
 
   depends_on "ripgrep"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://opencode.ai/files/bin/2.0.29/opencode-darwin-x64.zip"
-      sha256 "678400c2acc2c4f14aa261840fa2a35f907fbfc6d5edb102441b0275fd8cc605"
+      url "https://opencode.ai/files/bin/2.0.30/opencode-darwin-x64.zip"
+      sha256 "9e3b1ab51578a1f555fa5f6adee534a4986c9036013d5d0da4351eb939c4e08e"
     end
     if Hardware::CPU.arm?
-      url "https://opencode.ai/files/bin/2.0.29/opencode-darwin-arm64.zip"
-      sha256 "cde9292948a79f910384b246ebec90dce02654158ad63cec61ed912aabc7f601"
+      url "https://opencode.ai/files/bin/2.0.30/opencode-darwin-arm64.zip"
+      sha256 "1d5cb2a30272f070c9c55b6d8895bda1d1929e7702f5e6beb02b5d3a17de8961"
     end
   end
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://opencode.ai/files/bin/2.0.29/opencode-linux-x64.tar.gz"
-      sha256 "17d0a4219178f982a08fdc3d19e9252edf815b23f2f26e3e77b800b43c853598"
+      url "https://opencode.ai/files/bin/2.0.30/opencode-linux-x64.tar.gz"
+      sha256 "eca96167a12d982189d4f8d35952bf26d135a13751748db64fe17b72d5259793"
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://opencode.ai/files/bin/2.0.29/opencode-linux-arm64.tar.gz"
-      sha256 "39d0aa787531b0be9e67d087e8ff665cda1f8e748124fe790fe35f1fdd005c38"
+      url "https://opencode.ai/files/bin/2.0.30/opencode-linux-arm64.tar.gz"
+      sha256 "5211e95cb617eb04e1a5a0fa32e2e0d11a248b3bc7ed105d84cad761cc66ab7b"
     end
   end
 
