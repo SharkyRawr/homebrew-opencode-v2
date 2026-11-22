@@ -143,7 +143,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm]
+        include:
+          - runner: macos-26
+            tag: arm64_tahoe
+          - runner: xcode-27
+            tag: arm64_golden_gate
+          - runner: ubuntu-24.04
+            tag: x86_64_linux
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
@@ -153,14 +159,14 @@ jobs:
         env:
           REVISION: ${{ needs.update.outputs.revision }}
           RELEASE: ${{ needs.update.outputs.release }}
+          BOTTLE_TAG: ${{ matrix.tag }}
         run: |
           set -euo pipefail
           git checkout --detach "$REVISION"
           formula=sharkyrawr/opencode-v2/opencode@2
-          # Intel macOS can require source-built dependencies before --build-bottle.
-          brew install --only-dependencies "$formula"
           brew install --build-bottle "$formula"
           brew bottle --json --root-url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$RELEASE" "$formula"
+          jq -e --arg tag "$BOTTLE_TAG" '.[].bottle.tags | has($tag)' ./*.bottle.json
           HOMEBREW_NO_AUTOREMOVE=1 brew uninstall "$formula"
           brew install ./*.bottle*.tar.gz
           brew test "$formula"
