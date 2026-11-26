@@ -6,6 +6,14 @@ class OpencodeAT2 < Formula
   homepage "https://github.com/anomalyco/opencode"
   version "2.4.2"
 
+  bottle do
+    root_url "https://github.com/SharkyRawr/homebrew-opencode-v2/releases/download/bottles-2.4.2-45733160202"
+    rebuild 1
+    sha256                               arm64_golden_gate: "662aeedd8c41380a5ff21b1187ea8b8ecfeb8898a690eb182897c6014ec4d273"
+    sha256                               arm64_tahoe:       "f4d85ec66f552bd5157503c4f27edeea002a45c520472b88729bc8646510a8d7"
+    sha256 cellar: :any_skip_relocation, x86_64_linux:      "6c2ed8fdee3aa938cb687b9c74997be28ff0b34fd35729ef9816d358ad282e41"
+  end
+
   depends_on "ripgrep"
 
   on_macos do
