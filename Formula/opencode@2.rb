@@ -4,37 +4,29 @@
 class OpencodeAT2 < Formula
   desc "The AI coding agent built for the terminal."
   homepage "https://github.com/anomalyco/opencode"
-  version "2.4.1"
-
-  bottle do
-    root_url "https://github.com/SharkyRawr/homebrew-opencode-v2/releases/download/bottles-2.4.1-45222750023"
-    rebuild 1
-    sha256                               arm64_golden_gate: "99b514a48a0eab7af4b2cba1e0aa40f5c75473b4fb98c7fc657a8488451ef6cb"
-    sha256                               arm64_tahoe:       "bbd00efca61158cdd484b23059fd35b69ca4a4a21056e3d811ba938206c4d1f3"
-    sha256 cellar: :any_skip_relocation, x86_64_linux:      "00a304f6814fb9bf4ad476dfad034fb9ad211926e443861c76ec845a7544d927"
-  end
+  version "2.4.2"
 
   depends_on "ripgrep"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://opencode.ai/files/bin/2.4.1/opencode-darwin-x64.zip"
-      sha256 "a7a4c758a32488138531ab2d82be86e2a1438c35c017664f83daa1d5b63bb82c"
+      url "https://opencode.ai/files/bin/2.4.2/opencode-darwin-x64.zip"
+      sha256 "ea4204a75602ce4f1d2121c781a15fa3af6d1c4285cf8b6ae81f61a76deca2a2"
     end
     if Hardware::CPU.arm?
-      url "https://opencode.ai/files/bin/2.4.1/opencode-darwin-arm64.zip"
-      sha256 "95a101eda95108478f1db43cff8fcbd4811f6c0e79af1e167301843c6a48d731"
+      url "https://opencode.ai/files/bin/2.4.2/opencode-darwin-arm64.zip"
+      sha256 "d5a8c9fb4b121ebd531d9369d7ba6ce8af91c9d4d51d6685dbb4e0c7224fa5f3"
     end
   end
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://opencode.ai/files/bin/2.4.1/opencode-linux-x64.tar.gz"
-      sha256 "9ddd18e3faf64eaeccf6a0fcbc96a5c7a14520ae5fd5b61e5be51d894f478b47"
+      url "https://opencode.ai/files/bin/2.4.2/opencode-linux-x64.tar.gz"
+      sha256 "452912288f934d1771bd5bd0d8611ba3a6adc3db3ac3333c37facf373770ba66"
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://opencode.ai/files/bin/2.4.1/opencode-linux-arm64.tar.gz"
-      sha256 "cb28cf94541aeb62a4b2ea5997a99b5dd6bae595a772f36fbe279299f2032a4f"
+      url "https://opencode.ai/files/bin/2.4.2/opencode-linux-arm64.tar.gz"
+      sha256 "bf8d18dde87224629341ff398e76c7c17216b9b406affc728b6c1a5c136abf93"
     end
   end
 
